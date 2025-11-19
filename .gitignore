@@ -9,3 +9,4 @@ models/checkpoints
 data/training_data.json
 frontend/package-lock.json
 backend/venv
+venv
