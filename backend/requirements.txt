@@ -1,0 +1,32 @@
+# Radio Vision - Python Dependencies
+
+# Core ML/DL
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+
+# Image Processing
+Pillow>=10.0.0
+scikit-image>=0.21.0
+opencv-python>=4.8.0
+
+# Data Handling
+h5py>=3.9.0
+pandas>=2.0.0
+
+# API
+fastapi>=0.100.0
+uvicorn>=0.23.0
+python-multipart>=0.0.6
+
+# Progress & Visualization
+tqdm>=4.65.0
+matplotlib>=3.7.0
+
+# Optional: Logging & Monitoring
+wandb>=0.15.0  # For experiment tracking (optional)
+
+# Optional: Development
+pytest>=7.4.0  # For testing (optional)
+black>=23.0.0  # For code formatting (optional)
+flake8>=6.0.0  # For linting (optional)
