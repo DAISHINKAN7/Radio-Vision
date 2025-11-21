@@ -30,6 +30,8 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report, precision_recall_fscore_support
 import argparse
 from datetime import datetime
+from PIL import Image
+import torchvision.transforms as transforms
 
 # Import our custom modules
 import sys
@@ -149,6 +151,94 @@ class RadioSignalDataset(Dataset):
         signal_tensor = signal_tensor.unsqueeze(0)  # Add channel dim
 
         return signal_tensor
+
+
+class ImageFolderDataset(Dataset):
+    """
+    PyTorch Dataset for loading images from folders.
+    Expects structure: dataset_path/class_name/*.png
+    """
+    def __init__(self, dataset_path, split='train', augment=True, target_size=(224, 224)):
+        self.dataset_path = Path(dataset_path)
+        self.augment = augment
+        self.target_size = target_size
+
+        # Class mapping - standard class names
+        self.class_to_idx = {
+            'galaxy': 0,
+            'quasar': 1,
+            'radio_galaxy': 2,
+            'agn': 3
+        }
+        self.idx_to_class = {v: k for k, v in self.class_to_idx.items()}
+
+        # Map folder names with 's' suffix to standard names
+        self.folder_to_class = {
+            'galaxys': 'galaxy',
+            'quasars': 'quasar',
+            'radio_galaxys': 'radio_galaxy',
+            'agns': 'agn',
+            'galaxy': 'galaxy',
+            'quasar': 'quasar',
+            'radio_galaxy': 'radio_galaxy',
+            'agn': 'agn'
+        }
+
+        # Load samples from folders
+        self.samples = []
+        for folder in self.dataset_path.iterdir():
+            if folder.is_dir() and folder.name in self.folder_to_class:
+                class_name = self.folder_to_class[folder.name]
+                for img_path in folder.glob('*.png'):
+                    self.samples.append((img_path, class_name))
+                for img_path in folder.glob('*.jpg'):
+                    self.samples.append((img_path, class_name))
+                for img_path in folder.glob('*.jpeg'):
+                    self.samples.append((img_path, class_name))
+
+        # Transforms
+        if augment:
+            self.transform = transforms.Compose([
+                transforms.Resize(target_size),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                transforms.RandomRotation(30),
+                transforms.ColorJitter(brightness=0.2, contrast=0.2),
+                transforms.ToTensor(),
+            ])
+        else:
+            self.transform = transforms.Compose([
+                transforms.Resize(target_size),
+                transforms.ToTensor(),
+            ])
+
+        print(f"Loaded {len(self.samples)} samples from {dataset_path}")
+        self._print_class_distribution()
+
+    def _print_class_distribution(self):
+        """Print class distribution"""
+        from collections import Counter
+        class_counts = Counter([s[1] for s in self.samples])
+        print(f"Class distribution:")
+        for cls in ['galaxy', 'quasar', 'radio_galaxy', 'agn']:
+            count = class_counts.get(cls, 0)
+            print(f"  {cls}: {count}")
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        img_path, class_name = self.samples[idx]
+
+        # Load image
+        img = Image.open(img_path).convert('RGB')
+        img_tensor = self.transform(img)
+
+        # Convert to grayscale (single channel) for consistency
+        img_gray = img_tensor.mean(dim=0, keepdim=True)
+
+        label = self.class_to_idx[class_name]
+        return img_gray, label, class_name
 
 
 class MetricsTracker:
@@ -595,8 +685,8 @@ class TransferLearningTrainer:
             self.model.load_state_dict(checkpoint['model_state_dict'])
             print("✅ Pretrained weights loaded!")
 
-        # Load real dataset
-        full_dataset = RadioSignalDataset(
+        # Load real dataset (use ImageFolderDataset for image folders)
+        full_dataset = ImageFolderDataset(
             real_dataset_path,
             split='train',
             augment=True,
