@@ -234,11 +234,9 @@ class ImageFolderDataset(Dataset):
         img = Image.open(img_path).convert('RGB')
         img_tensor = self.transform(img)
 
-        # Convert to grayscale (single channel) for consistency
-        img_gray = img_tensor.mean(dim=0, keepdim=True)
-
+        # Keep as RGB (3 channels) to match pretrained model
         label = self.class_to_idx[class_name]
-        return img_gray, label, class_name
+        return img_tensor, label, class_name
 
 
 class MetricsTracker:
@@ -682,8 +680,8 @@ class TransferLearningTrainer:
         if pretrained_path:
             print(f"\n📦 Loading pretrained weights from: {pretrained_path}")
             checkpoint = torch.load(pretrained_path)
-            self.model.load_state_dict(checkpoint['model_state_dict'])
-            print("✅ Pretrained weights loaded!")
+            self.model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+            print("✅ Pretrained weights loaded (some layers may be randomly initialized)!")
 
         # Load real dataset (use ImageFolderDataset for image folders)
         full_dataset = ImageFolderDataset(
