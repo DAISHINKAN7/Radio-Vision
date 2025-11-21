@@ -258,7 +258,10 @@ class ImprovedGANLoss(nn.Module):
     def discriminator_loss(self, real_pred_list, fake_pred_list):
         loss = 0.0
         for real_pred, fake_pred in zip(real_pred_list, fake_pred_list):
-            real_loss = F.mse_loss(real_pred, torch.ones_like(real_pred))
-            fake_loss = F.mse_loss(fake_pred, torch.zeros_like(fake_pred))
+            # Label smoothing: use 0.9 for real, 0.1 for fake to weaken D
+            real_target = torch.ones_like(real_pred) * 0.9
+            fake_target = torch.ones_like(fake_pred) * 0.1
+            real_loss = F.mse_loss(real_pred, real_target)
+            fake_loss = F.mse_loss(fake_pred, fake_target)
             loss = loss + (real_loss + fake_loss) / 2
         return loss / len(real_pred_list)
