@@ -252,7 +252,12 @@ class CutMixAugmentation:
             mixed_x, y1, y2, lambda
         """
         lam = np.random.beta(self.alpha, self.alpha)
-        h, w = x1.shape
+
+        # Handle both 2D (H, W) and 3D (C, H, W) arrays
+        if x1.ndim == 3:
+            _, h, w = x1.shape
+        else:
+            h, w = x1.shape
 
         # Random box
         cut_rat = np.sqrt(1.0 - lam)
@@ -270,7 +275,10 @@ class CutMixAugmentation:
 
         # Apply CutMix
         mixed_x = x1.copy()
-        mixed_x[bby1:bby2, bbx1:bbx2] = x2[bby1:bby2, bbx1:bbx2]
+        if x1.ndim == 3:
+            mixed_x[:, bby1:bby2, bbx1:bbx2] = x2[:, bby1:bby2, bbx1:bbx2]
+        else:
+            mixed_x[bby1:bby2, bbx1:bbx2] = x2[bby1:bby2, bbx1:bbx2]
 
         # Adjust lambda
         lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (w * h))
