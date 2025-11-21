@@ -111,6 +111,9 @@ class SelfAttention(nn.Module):
         """
         B, C, H, W = x.size()
 
+        # Clone input for residual connection to avoid inplace operation issues
+        x_residual = x.clone()
+
         # Compute query, key, value
         query = self.query(x).view(B, -1, H * W).permute(0, 2, 1)  # (B, HW, C')
         key = self.key(x).view(B, -1, H * W)  # (B, C', HW)
@@ -124,7 +127,7 @@ class SelfAttention(nn.Module):
         out = out.view(B, C, H, W)
 
         # Residual connection with learnable weight
-        out = self.gamma * out + x
+        out = self.gamma * out + x_residual
 
         return out
 

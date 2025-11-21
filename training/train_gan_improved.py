@@ -284,7 +284,7 @@ class ImprovedGANTrainer:
             in_channels=3,
             out_channels=3,
             features=config.get('gen_features', 64),
-            use_attention=config.get('use_attention', True)
+            use_attention=not config.get('no_attention', False)
         ).to(self.device)
 
         self.discriminator = MultiScaleDiscriminator(
@@ -603,8 +603,8 @@ def main():
                        help='Discriminator base features')
     parser.add_argument('--num_scales', type=int, default=3,
                        help='Number of discriminator scales')
-    parser.add_argument('--use_attention', action='store_true', default=True,
-                       help='Use self-attention in generator')
+    parser.add_argument('--no_attention', action='store_true', default=False,
+                       help='Disable self-attention in generator')
 
     # Loss weights
     parser.add_argument('--lambda_l1', type=float, default=100.0,
