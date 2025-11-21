@@ -13,6 +13,11 @@ class VGGPerceptualLoss(nn.Module):
         super().__init__()
         vgg = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features
 
+        # CRITICAL: Disable inplace operations in VGG to avoid autograd errors
+        for module in vgg.modules():
+            if isinstance(module, nn.ReLU):
+                module.inplace = False
+
         self.feature_blocks = nn.ModuleList()
         prev_layer = 0
         for layer_idx in feature_layers:

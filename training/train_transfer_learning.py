@@ -55,14 +55,26 @@ class RadioSignalDataset(Dataset):
         with h5py.File(self.dataset_path / 'signals.h5', 'r') as f:
             self.signals = f['signals'][:]
 
-        # Class mapping
+        # Class mapping - standard class names
         self.class_to_idx = {
-            'spiral_galaxy': 0,
-            'emission_nebula': 1,
-            'quasar': 2,
-            'pulsar': 3
+            'galaxy': 0,
+            'quasar': 1,
+            'radio_galaxy': 2,
+            'agn': 3
         }
         self.idx_to_class = {v: k for k, v in self.class_to_idx.items()}
+
+        # Map folder names with 's' suffix to standard names
+        self.folder_to_class = {
+            'galaxys': 'galaxy',
+            'quasars': 'quasar',
+            'radio_galaxys': 'radio_galaxy',
+            'agns': 'agn',
+            'galaxy': 'galaxy',
+            'quasar': 'quasar',
+            'radio_galaxy': 'radio_galaxy',
+            'agn': 'agn'
+        }
 
         # Create augmentation pipeline
         if augment:
@@ -76,9 +88,12 @@ class RadioSignalDataset(Dataset):
     def _print_class_distribution(self):
         """Print class distribution"""
         from collections import Counter
-        class_counts = Counter([item['object_type'] for item in self.metadata])
+        # Map folder names to standard class names
+        mapped_types = [self.folder_to_class.get(item['object_type'], item['object_type'])
+                       for item in self.metadata]
+        class_counts = Counter(mapped_types)
         print(f"\n📊 Class Distribution:")
-        for cls in ['spiral_galaxy', 'emission_nebula', 'quasar', 'pulsar']:
+        for cls in ['galaxy', 'quasar', 'radio_galaxy', 'agn']:
             count = class_counts.get(cls, 0)
             print(f"   {cls:20s}: {count:4d} samples")
 
@@ -98,10 +113,11 @@ class RadioSignalDataset(Dataset):
         # Preprocess signal
         signal_tensor = self._preprocess_signal(signal)
 
-        # Get label
-        label = self.class_to_idx[meta['object_type']]
+        # Get label - map folder name to standard class name
+        object_type = self.folder_to_class.get(meta['object_type'], meta['object_type'])
+        label = self.class_to_idx[object_type]
 
-        return signal_tensor, label, meta['object_type']
+        return signal_tensor, label, object_type
 
     def _preprocess_signal(self, signal):
         """
@@ -141,7 +157,7 @@ class MetricsTracker:
     """
     def __init__(self, num_classes=4, class_names=None):
         self.num_classes = num_classes
-        self.class_names = class_names or ['spiral_galaxy', 'emission_nebula', 'quasar', 'pulsar']
+        self.class_names = class_names or ['galaxy', 'quasar', 'radio_galaxy', 'agn']
 
         self.train_losses = []
         self.val_losses = []
@@ -663,7 +679,7 @@ class TransferLearningTrainer:
             print(f"  LR: {current_lr:.2e}")
 
             # Print per-class metrics
-            class_names = ['spiral_galaxy', 'emission_nebula', 'quasar', 'pulsar']
+            class_names = ['galaxy', 'quasar', 'radio_galaxy', 'agn']
             print(f"\n  Per-Class Metrics:")
             for i, cls in enumerate(class_names):
                 print(f"    {cls:20s}: P={per_class_metrics['precision'][i]:.2%} "
