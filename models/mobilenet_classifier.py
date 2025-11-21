@@ -21,16 +21,17 @@ class MobileNetV2Classifier(nn.Module):
     - High dropout for regularization
     """
 
-    def __init__(self, num_classes=4, pretrained=True, dropout=0.7):
+    def __init__(self, num_classes=4, pretrained=True, dropout=0.7, in_channels=3):
         super().__init__()
 
         # Load MobileNetV2 backbone
         self.backbone = models.mobilenet_v2(pretrained=pretrained)
 
-        # Modify first conv for single-channel input (radio signals)
-        self.backbone.features[0][0] = nn.Conv2d(
-            1, 32, kernel_size=3, stride=2, padding=1, bias=False
-        )
+        # Only modify first conv if using single-channel input
+        if in_channels != 3:
+            self.backbone.features[0][0] = nn.Conv2d(
+                in_channels, 32, kernel_size=3, stride=2, padding=1, bias=False
+            )
 
         # Get feature dimension
         feature_dim = 1280
