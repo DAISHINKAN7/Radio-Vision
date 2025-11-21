@@ -184,17 +184,32 @@ class ImageFolderDataset(Dataset):
             'agn': 'agn'
         }
 
-        # Load samples from folders
+        # Load samples from folders (handle nested optical/radio structure)
         self.samples = []
         for folder in self.dataset_path.iterdir():
             if folder.is_dir() and folder.name in self.folder_to_class:
                 class_name = self.folder_to_class[folder.name]
-                for img_path in folder.glob('*.png'):
-                    self.samples.append((img_path, class_name))
-                for img_path in folder.glob('*.jpg'):
-                    self.samples.append((img_path, class_name))
-                for img_path in folder.glob('*.jpeg'):
-                    self.samples.append((img_path, class_name))
+
+                # Check for nested optical/radio folders
+                optical_folder = folder / 'optical'
+                radio_folder = folder / 'radio'
+
+                # Use optical images for classification (or radio if optical doesn't exist)
+                search_folders = []
+                if optical_folder.exists():
+                    search_folders.append(optical_folder)
+                elif radio_folder.exists():
+                    search_folders.append(radio_folder)
+                else:
+                    search_folders.append(folder)  # Images directly in class folder
+
+                for search_folder in search_folders:
+                    for img_path in search_folder.glob('*.png'):
+                        self.samples.append((img_path, class_name))
+                    for img_path in search_folder.glob('*.jpg'):
+                        self.samples.append((img_path, class_name))
+                    for img_path in search_folder.glob('*.jpeg'):
+                        self.samples.append((img_path, class_name))
 
         # Transforms
         if augment:
